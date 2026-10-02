@@ -3,15 +3,9 @@ const mongoose = require('mongoose');
 const Task = require('../models/Task');
 const User = require('../models/User');
 const FocusSession = require('../models/FocusSession');
+const philippineDayNumber = require('../utils/philippineDayNumber');
 
 const router = express.Router();
-
-// Cafe Tempo uses Philippine calendar days when ranking deadlines.
-function philippineDayNumber(date) {
-  const eightHours = 8 * 60 * 60 * 1000;
-  const oneDay = 24 * 60 * 60 * 1000;
-  return Math.floor((date.getTime() + eightHours) / oneDay);
-}
 
 function priorityFor(task, today) {
   const daysUntilDue = philippineDayNumber(task.deadline) - philippineDayNumber(today);

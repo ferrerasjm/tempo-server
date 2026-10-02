@@ -4,6 +4,8 @@ const healthRoutes = require('./routes/healthRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const cafeAreaRoutes = require('./routes/cafeAreaRoutes');
 const reservationRoutes = require('./routes/reservationRoutes');
+const focusRoutes = require('./routes/focusRoutes');
+const focusSessionRoutes = require('./routes/focusSessionRoutes');
 const requestLogger = require('./middleware/requestLogger');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
@@ -18,6 +20,8 @@ app.use('/api/health', healthRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/cafe-areas', cafeAreaRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/focus', focusRoutes);
+app.use('/api/focus-sessions', focusSessionRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

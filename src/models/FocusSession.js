@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const focusSessionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
+  task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
   area: { type: mongoose.Schema.Types.ObjectId, ref: 'CafeArea', required: true },
   plannedMinutes: { type: Number, required: true, min: 15, max: 120 },
   completedMinutes: { type: Number, min: 0, max: 120, default: 0 },
