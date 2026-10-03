@@ -1,6 +1,6 @@
 # Cafe Tempo API
 
-Cafe Tempo is a virtual study cafe where a student plans tasks, chooses a cafe area, completes focus sessions, reserves seats, and orders virtual drinks or snacks. The API uses Express, MongoDB Atlas, and Mongoose. It calculates task priority, focus recommendations, seat availability, focus scores, statistics, streaks, and order totals.
+Cafe Tempo is a virtual productivity cafe where a user plans tasks, chooses a cafe area, completes focus sessions, reserves seats, and orders virtual drinks or snacks. The API uses Express, MongoDB Atlas, and Mongoose. It calculates task priority, focus recommendations, seat availability, focus scores, statistics, streaks, and order totals.
 
 ## Team and repositories
 
@@ -13,7 +13,7 @@ The project instructions conflict on whether to submit one repository or two. Th
 
 ## Run locally
 
-Use Node.js 20 or newer and a MongoDB Atlas database. From the `server` folder:
+Use Node.js 20.19+ or 22.12+ (matching the Vite client requirement) and a MongoDB Atlas database. From the `server` folder:
 
 ```powershell
 npm.cmd install
@@ -43,7 +43,7 @@ Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeArea
 
 - **Task priority:** today or overdue +3, tomorrow +2, high difficulty +2, and estimated work over 120 minutes +1. Unfinished tasks are sorted by score, then deadline.
 - **Focus recommendation:** starts at 25, 40, or 50 minutes for low, medium, or high energy. Difficulty and urgency adjust the length; it stays within the task estimate and at least 15 minutes. The break is 5, 10, or 15 minutes based on the result.
-- **Focus score:** completed minutes divided by planned minutes, multiplied by 100 and rounded. Sessions can exceed 100% if the student works longer than planned.
+- **Focus score:** completed minutes divided by planned minutes, multiplied by 100 and rounded. Recorded minutes are capped at the planned duration, so newly completed sessions score at most 100%.
 - **Seat availability:** counts the highest number of overlapping active reservations and running focus sessions in the requested time interval, then subtracts it from area capacity.
 - **Statistics and streak:** totals use completed sessions. Calendar days use Philippine time (UTC+8). A current streak remains active through the day after the latest completed session.
 - **Order total:** menu prices come from the database. A completed focus session today gives 10% off, rounded to whole credits. Orders use virtual credits; no payment is taken.
@@ -71,13 +71,13 @@ In the table, `GET` request examples show query strings where useful. Body examp
 | GET | `/api/reservations/:id` | Get reservation | `/api/reservations/<reservationId>` | `{"status":"active"}` |
 | POST | `/api/reservations` | Reserve a seat | `{"user":"<userId>","area":"<areaId>","startsAt":"2030-06-01T10:00:00+08:00","endsAt":"2030-06-01T11:00:00+08:00"}` | `{"_id":"<reservationId>","status":"active"}` |
 | PATCH | `/api/reservations/:id` | Cancel reservation | `{"status":"cancelled"}` | `{"status":"cancelled"}` |
-| POST | `/api/focus/recommendation` **P** | Suggest study and break minutes | `{"task":"<taskId>","energyLevel":"high"}` | `{"plannedMinutes":40,"breakMinutes":10}` |
+| POST | `/api/focus/recommendation` **P** | Suggest focus and break minutes | `{"task":"<taskId>","energyLevel":"high"}` | `{"plannedMinutes":40,"breakMinutes":10}` |
 | GET | `/api/focus/statistics` **P** | Summarize productivity | `?user=<userId>` | `{"totalFocusMinutes":85,"completedTasks":1}` |
 | GET | `/api/focus/streak` **P** | Count current and longest streak | `?user=<userId>` | `{"currentStreak":1,"longestStreak":1}` |
 | GET | `/api/focus-sessions` | List sessions | `?user=<userId>&status=completed` | `[{"status":"completed","focusScore":100}]` |
 | GET | `/api/focus-sessions/:id` | Get session | `/api/focus-sessions/<sessionId>` | `{"status":"completed","focusScore":100}` |
 | POST | `/api/focus-sessions` | Start a session | `{"user":"<userId>","task":"<taskId>","area":"<areaId>","energyLevel":"medium"}` | `{"_id":"<sessionId>","status":"active"}` |
-| PATCH | `/api/focus-sessions/:id` | Timer actions or manual completion/cancellation | `{"status":"completed","completedMinutes":30}` | `{"status":"completed","focusScore":75}` |
+| PATCH | `/api/focus-sessions/:id` | Timer actions, task confirmation, or cancellation | `{"action":"stop"}` | `{"status":"completed","focusScore":75}` |
 | GET | `/api/menu-items` | List menu items | `?category=drink` | `[{"name":"Cafe Latte","priceCredits":30}]` |
 | GET | `/api/menu-items/:id` | Get menu item | `/api/menu-items/<itemId>` | `{"name":"Cafe Latte","priceCredits":30}` |
 | GET | `/api/orders` | List orders | `?user=<userId>` | `[{"status":"placed","totalCredits":30}]` |
@@ -106,12 +106,12 @@ For the defense, demonstrate one successful request, one `400` validation error,
 The original recommendation-based POST remains supported. For the drink flow, POST `/api/focus-sessions` with the usual user/task/area/energyLevel fields plus:
 
 ```json
-{ "drink": "<menuItemId>", "drinkSize": "grande", "sessionLabel": "My study label", "status": "planned" }
+{ "drink": "<menuItemId>", "drinkSize": "grande", "sessionLabel": "My focus label", "status": "planned" }
 ```
 
 This prepares a session without starting the timer or taking a seat. The server sets Tall to 25 minutes, Grande to 45, and Venti to 60. Their break durations are 5, 10, and 15 minutes. The menu item must be an available drink. The label is at most 80 characters. One user can have only one planned, active, or paused session.
 
-PATCH `/api/focus-sessions/:id` with `{ "action": "start" }`, `pause`, `resume`, `move`, or `stop`. Start/resume/move may include an `area` ID. The server checks capacity over the remaining focus window before assigning a seat. Arrows in the client only preview spaces; a move request changes the actual seat.
+PATCH `/api/focus-sessions/:id` with `{ "action": "start" }`, `pause`, `resume`, `move`, or `stop`. Start/resume/move may include an `area` ID. The server checks capacity over the remaining focus window before assigning a seat. Client arrows send move requests for virtual spaces. Planned and paused moves select an area without occupying a seat.
 
 Pause persists its timestamp and releases the seat. Resume checks seats again and adds the paused interval to `pausedMilliseconds`. Stop calculates elapsed whole minutes excluding pauses; zero minutes becomes cancelled, otherwise completed. GET responses include `serverTime` and `elapsedSeconds`. Planned sessions have no start timestamp. Finished sessions reject further timer actions. The existing manual completion request is retained for direct API activities.
 
@@ -123,6 +123,16 @@ A full timer saved with the stop action earns 20 Tempo Credits. Completing its t
 
 `GET /api/rewards?user=<userId>` computes balance from session/task awards minus paid, non-cancelled orders. It also returns available quantities, mission progress, and the five-minute break limit. `POST /api/orders/calculate` includes `availableCredits` and `canAfford`; order creation rejects insufficient funds and saves `creditsCharged: true`. Cancellation refunds entirely unused orders; an order with any consumed reward cannot be cancelled.
 
-The pause action now requires `rewardOrder` and `rewardItem` IDs. The server verifies that the selected user owns an unused paid item, then persists its consumption and the pause in one session save. The setup drink does not count as a purchased reward. Reward breaks release seats. A five-second server interval resumes expired breaks when capacity permits, including when the browser is closed. If seats are full, the session waits; the client can choose another area. Stop remains available at all times, and early stops earn no credits.
+Ordinary pause requires no purchase. A timed reward break additionally sends `rewardOrder` and `rewardItem` IDs. The server verifies that the selected user owns an unused paid item, then persists its consumption and the pause in one session save. The setup drink does not count as a purchased reward. Reward breaks release seats. A five-second server interval resumes expired breaks when capacity permits, including when the browser is closed. If seats are full, the session waits; the client can choose another area. Stop remains available at all times, and early stops earn no credits.
 
 Orders, cancellations, seat changes, and reward consumption use the same single-process Promise queue. Mission awards and spent orders remain the source of truth, avoiding an independently editable wallet balance. Full browser/API tests cover concurrent spending, duplicate rewards, break expiry, refund restrictions, and capacity. See the client `docs/TEMPO_REWARDS.md` for the exact user flow and frontend handoff. Focus Passport stamps remain separate and unimplemented.
+
+## Reliable timer and request behavior
+
+Both timer-action and legacy completion requests calculate focused minutes from server timestamps, capped at the planned duration. A caller cannot claim extra minutes. Task confirmation uses PATCH `/api/focus-sessions/:id` with `{ "action": "confirm_task", "taskCompleted": true }` (or false); confirming false reopens the task as in progress. The session stores `taskConfirmed`, `taskCompleted`, and a historical `taskTitle`.
+
+Task, session, and order POST requests accept an optional `requestKey` string of up to 120 characters. Retrying a successful request with the same user/key returns the original record with 200, rather than creating or charging again. New requests return 201. Keep the same key for a retry and use a new key for a separate operation. Unique partial indexes enforce request identities, and the current queue serializes capacity and spending checks in one server process.
+
+Space movement checks capacity while running. Moving a planned or paused session updates its selected area without starting its clock. Reward purchases are consumed from Your Orders, with availability rechecked on the server.
+
+Run `node --test tests/logic.test.js` for the six server regression checks. The client browser integration suite uses temporary Atlas profiles and cleans up their data.

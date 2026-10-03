@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
+  requestKey: { type: String, maxlength: 120 },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   items: [{
     menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
@@ -15,5 +16,7 @@ const orderSchema = new mongoose.Schema({
   creditsCharged: { type: Boolean, default: false },
   status: { type: String, enum: ['placed', 'fulfilled', 'cancelled'], default: 'placed' },
 }, { timestamps: true });
+
+orderSchema.index({ user: 1, requestKey: 1 }, { unique: true, partialFilterExpression: { requestKey: { $type: 'string' } } });
 
 module.exports = mongoose.model('Order', orderSchema);

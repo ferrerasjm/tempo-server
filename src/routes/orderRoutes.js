@@ -132,13 +132,20 @@ router.get('/:id', async (request, response, next) => {
 // POST /api/orders with { user, items: [{ menuItem, quantity }] }
 router.post('/', (request, response, next) => withSeatLock(async () => {
   try {
+    const requestKey = request.body?.requestKey;
+    if (requestKey !== undefined) {
+      if (typeof requestKey !== 'string' || !requestKey || requestKey.length > 120) return response.status(400).json({ message: 'Invalid request key' });
+      if (!mongoose.Types.ObjectId.isValid(request.body.user)) return response.status(400).json({ message: 'Invalid user ID' });
+      const saved = await Order.findOne({ user: request.body.user, requestKey });
+      if (saved) return response.json(saved);
+    }
     const calculation = await calculateOrder(request.body);
     if (calculation.error) {
       return response.status(calculation.error.status).json({ message: calculation.error.message });
     }
 
     if (!calculation.result.canAfford) return response.status(400).json({ message: 'Not enough Tempo Credits. Complete a mission to earn more.' });
-    const order = await Order.create({ ...calculation.result, creditsCharged: true });
+    const order = await Order.create({ ...calculation.result, creditsCharged: true, requestKey });
     response.status(201).json(order);
   } catch (error) {
     next(error);

@@ -44,14 +44,29 @@ async function seed() {
 
   const menuData = [
     { name: 'Cafe Latte', category: 'drink', priceCredits: 30 },
+    { name: 'Americano', category: 'drink', priceCredits: 24 },
+    { name: 'Cappuccino', category: 'drink', priceCredits: 32 },
     { name: 'Matcha Tea', category: 'drink', priceCredits: 28 },
     { name: 'Hot Chocolate', category: 'drink', priceCredits: 26 },
-    { name: 'Butter Cookie', category: 'snack', priceCredits: 15 },
+    { name: 'Macchiato', category: 'drink', priceCredits: 34 },
+    { name: 'Fruit Tart', category: 'snack', priceCredits: 24 },
+    { name: 'Egg Tart', category: 'snack', priceCredits: 20 },
+    { name: 'Cinnamon Roll', category: 'snack', priceCredits: 22 },
+    { name: 'Chocolate Donut', category: 'snack', priceCredits: 18 },
+    { name: 'Blueberry Muffin', category: 'snack', priceCredits: 21 },
+    { name: 'Croissant', category: 'snack', priceCredits: 20 },
   ];
 
   const menuItems = {};
   for (const item of menuData) {
     menuItems[item.name] = await findOrCreate(MenuItem, { name: item.name }, item);
+  }
+
+  const legacyItems = await MenuItem.find({ name: { $in: ['Butter Cookie', 'Black Tea', 'Mocha'] } });
+  for (const legacyItem of legacyItems) {
+    if (!(await Order.exists({ 'items.menuItem': legacyItem._id }))) {
+      await MenuItem.deleteOne({ _id: legacyItem._id });
+    }
   }
 
   const reviewTask = await findOrCreate(Task, { user: user._id, title: 'Review database relationships' }, {

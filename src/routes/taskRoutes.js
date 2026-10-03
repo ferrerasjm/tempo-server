@@ -106,25 +106,30 @@ router.get('/:id', async (request, response, next) => {
 });
 
 // POST /api/tasks
-router.post('/', async (request, response, next) => {
+router.post('/', (request, response, next) => require('../utils/seatLock')(async () => {
   try {
-    const { user, title, description, deadline, difficulty, estimatedMinutes } = request.body || {};
+    const { user, title, description, deadline, difficulty, estimatedMinutes, requestKey } = request.body || {};
 
     if (!validId(user)) {
       return response.status(400).json({ message: 'Invalid user ID' });
     }
 
+    if (requestKey !== undefined) {
+      if (typeof requestKey !== 'string' || !requestKey || requestKey.length > 120) return response.status(400).json({ message: 'Invalid request key' });
+      const saved = await Task.findOne({ user, requestKey });
+      if (saved) return response.json(saved);
+    }
     const existingUser = await User.findById(user);
     if (!existingUser) {
       return response.status(404).json({ message: 'User not found' });
     }
 
-    const task = await Task.create({ user, title, description, deadline, difficulty, estimatedMinutes });
+    const task = await Task.create({ user, title, description, deadline, difficulty, estimatedMinutes, requestKey });
     response.status(201).json(task);
   } catch (error) {
     next(error);
   }
-});
+}).catch(next));
 
 // PATCH /api/tasks/:id
 router.patch('/:id', async (request, response, next) => {
@@ -145,8 +150,8 @@ router.patch('/:id', async (request, response, next) => {
       return response.status(400).json({ message: 'Provide at least one task field to update' });
     }
 
-    if (changes.status === 'completed') changes.completedAt = new Date();
     if (changes.status === 'completed') {
+      changes.completedAt = new Date();
       const qualified = await FocusSession.findOne({ task: request.params.id, tempoCreditsEarned: { $gt: 0 } });
       // Setting a permanent award once avoids earning again by reopening a task.
       if (qualified) changes.tempoCreditsEarned = TASK_CREDITS;

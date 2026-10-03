@@ -108,13 +108,15 @@ router.get('/statistics', async (request, response, next) => {
     let favoriteCafeArea = null;
     for (const [areaId, minutes] of Object.entries(minutesByArea)) {
       if (!favoriteCafeArea || minutes > favoriteCafeArea.totalMinutes) {
-        const area = await CafeArea.findById(areaId);
         favoriteCafeArea = {
           id: areaId,
-          name: area ? area.name : 'Deleted cafe area',
           totalMinutes: minutes,
         };
       }
+    }
+    if (favoriteCafeArea) {
+      const area = await CafeArea.findById(favoriteCafeArea.id);
+      favoriteCafeArea.name = area ? area.name : 'Deleted cafe area';
     }
 
     const drinkIds = new Set(drinks.map(drink => String(drink._id)));

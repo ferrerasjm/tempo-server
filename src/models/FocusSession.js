@@ -1,8 +1,12 @@
 const mongoose = require('mongoose');
 
 const focusSessionSchema = new mongoose.Schema({
+  requestKey: { type: String, maxlength: 120 },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   task: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
+  taskCompleted: { type: Boolean },
+  taskConfirmed: { type: Boolean, default: false },
+  taskTitle: { type: String, trim: true, maxlength: 120, default: '' },
   area: { type: mongoose.Schema.Types.ObjectId, ref: 'CafeArea', required: true },
   plannedMinutes: { type: Number, required: true, min: 15, max: 120 },
   completedMinutes: { type: Number, min: 0, max: 120, default: 0 },
@@ -27,5 +31,7 @@ const focusSessionSchema = new mongoose.Schema({
   }],
   endedAt: { type: Date, default: null },
 }, { timestamps: true });
+
+focusSessionSchema.index({ user: 1, requestKey: 1 }, { unique: true, partialFilterExpression: { requestKey: { $type: 'string' } } });
 
 module.exports = mongoose.model('FocusSession', focusSessionSchema, 'focusSessions');
