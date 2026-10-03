@@ -5,6 +5,9 @@ const CafeArea = require('../models/CafeArea');
 const User = require('../models/User');
 const getPeakReservedSeats = require('../utils/seatAvailability');
 const parseDateTime = require('../utils/parseDateTime');
+const FocusSession = require('../models/FocusSession');
+const { sessionEndsAt } = require('../utils/sessionClock');
+const withSeatLock = require('../utils/seatLock');
 
 const router = express.Router();
 
@@ -53,7 +56,7 @@ router.get('/:id', async (request, response, next) => {
 });
 
 // POST /api/reservations
-router.post('/', async (request, response, next) => {
+router.post('/', (request, response, next) => withSeatLock(async () => {
   try {
     const { user, area, startsAt, endsAt } = request.body || {};
 
@@ -91,6 +94,11 @@ router.post('/', async (request, response, next) => {
       return response.status(400).json({ message: 'You already have a reservation during this time' });
     }
 
+    const focus = await FocusSession.findOne({ user, status: 'active' });
+    if (focus && focus.startedAt < end && sessionEndsAt(focus) > start) {
+      return response.status(400).json({ message: 'You already have a focus session during this time' });
+    }
+
     const reservedSeats = await getPeakReservedSeats(area, start, end);
     if (reservedSeats >= existingArea.capacity) {
       return response.status(400).json({ message: 'No seats remain in this cafe area for that time' });
@@ -101,7 +109,7 @@ router.post('/', async (request, response, next) => {
   } catch (error) {
     next(error);
   }
-});
+}).catch(next));
 
 // PATCH /api/reservations/:id with { "status": "cancelled" }
 router.patch('/:id', async (request, response, next) => {
