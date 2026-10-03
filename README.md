@@ -50,12 +50,13 @@ Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeArea
 
 ## API inventory
 
-There are **27 project endpoints**, including six processing endpoints marked **P**. `/api/health` is an additional server check. All error responses use `{ "message": "..." }`; invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`.
+There are **28 project endpoints**, including six processing endpoints marked **P**. `/api/health` is an additional server check. All error responses use `{ "message": "..." }`; invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`.
 
 In the table, `GET` request examples show query strings where useful. Body examples are abbreviated JSON; omitted fields are described in the route section below.
 
 | Method | Path | Purpose | Sample request | Sample response |
 | --- | --- | --- | --- | --- |
+| GET | `/api/users` | Choose an existing demo profile (not authentication) | `/api/users` | `[{"_id":"<userId>","displayName":"Demo Student"}]` |
 | GET | `/api/tasks` | List tasks | `?user=<userId>` | `[{"title":"Prepare API demo"}]` |
 | GET | `/api/tasks/priorities` **P** | Rank unfinished tasks | `?user=<userId>` | `{"rules":{...},"tasks":[{"priorityScore":3}]}` |
 | GET | `/api/tasks/:id` | Get one task | `/api/tasks/<taskId>` | `{"title":"Prepare API demo"}` |
@@ -90,10 +91,10 @@ For a real request in Thunder Client, first call `GET /api/menu-items`, copy a m
 
 ## Checks and current limits
 
-The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. Checks included invalid input and missing records. A full end-to-end review with the React client is still needed.
+The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. The React draft's browser tests also cover task creation/editing/deletion, session reload/completion, discounts, orders, reservations, statistics, mobile navigation, and error recovery using an isolated profile. Final review after UI refinement is still needed.
 
-- The frontend, final screenshots, and frontend partner's name/contributions must be added before submission.
-- There is no login, payment, or real-time timer. The app uses a selected user ID, virtual credits, and client-side timing for a focus session.
+- A working React draft and its screenshots are in the client repository. Final UI refinement and the frontend partner's name/contributions remain before submission.
+- There is no password login or payment. The draft uses a selected user ID, virtual credits, and a browser countdown derived from the saved session timestamp.
 - Seat reservation prevents ordinary overbooking requests, but simultaneous requests are not protected by a database transaction.
 - Confirm the repository submission format and exact deadline in the Microsoft Teams assignment.
 

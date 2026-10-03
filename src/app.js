@@ -8,6 +8,7 @@ const focusRoutes = require('./routes/focusRoutes');
 const focusSessionRoutes = require('./routes/focusSessionRoutes');
 const menuItemRoutes = require('./routes/menuItemRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const userRoutes = require('./routes/userRoutes');
 const requestLogger = require('./middleware/requestLogger');
 const notFound = require('./middleware/notFound');
 const errorHandler = require('./middleware/errorHandler');
@@ -26,6 +27,7 @@ app.use('/api/focus', focusRoutes);
 app.use('/api/focus-sessions', focusSessionRoutes);
 app.use('/api/menu-items', menuItemRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/users', userRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
