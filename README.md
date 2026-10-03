@@ -50,12 +50,13 @@ Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeArea
 
 ## API inventory
 
-There are **28 project endpoints**, including six processing endpoints marked **P**. `/api/health` is an additional server check. All error responses use `{ "message": "..." }`; invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`.
+There are **29 project endpoints**, including six processing endpoints marked **P**. `/api/health` is an additional server check. All error responses use `{ "message": "..." }`; invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`.
 
 In the table, `GET` request examples show query strings where useful. Body examples are abbreviated JSON; omitted fields are described in the route section below.
 
 | Method | Path | Purpose | Sample request | Sample response |
 | --- | --- | --- | --- | --- |
+| GET | `/api/rewards` | Calculate Tempo Credits, inventory, and missions | `?user=<userId>` | `{"balance":20,"items":[],"missions":[...]}` |
 | GET | `/api/users` | Choose an existing demo profile (not authentication) | `/api/users` | `[{"_id":"<userId>","displayName":"Demo Student"}]` |
 | GET | `/api/tasks` | List tasks | `?user=<userId>` | `[{"title":"Prepare API demo"}]` |
 | GET | `/api/tasks/priorities` **P** | Rank unfinished tasks | `?user=<userId>` | `{"rules":{...},"tasks":[{"priorityScore":3}]}` |
@@ -115,3 +116,13 @@ PATCH `/api/focus-sessions/:id` with `{ "action": "start" }`, `pause`, `resume`,
 Pause persists its timestamp and releases the seat. Resume checks seats again and adds the paused interval to `pausedMilliseconds`. Stop calculates elapsed whole minutes excluding pauses; zero minutes becomes cancelled, otherwise completed. GET responses include `serverTime` and `elapsedSeconds`. Planned sessions have no start timestamp. Finished sessions reject further timer actions. The existing manual completion request is retained for direct API activities.
 
 Availability includes running sessions until their predicted timer end. Completed, cancelled, paused, and planned sessions do not occupy seats. A user's overlapping future reservation must be cancelled before taking a live session seat. This avoids counting the same user's booking twice.
+
+## Tempo Credits gamification
+
+A full timer saved with the stop action earns 20 Tempo Credits. Completing its task earns 15 once per task. Awards are permanent server fields; reopening a task, repeating a stop, or submitting manual completed minutes cannot duplicate them. Legacy seed sessions/orders do not automatically grant credit or inventory.
+
+`GET /api/rewards?user=<userId>` computes balance from session/task awards minus paid, non-cancelled orders. It also returns available quantities, mission progress, and the five-minute break limit. `POST /api/orders/calculate` includes `availableCredits` and `canAfford`; order creation rejects insufficient funds and saves `creditsCharged: true`. Cancellation refunds entirely unused orders; an order with any consumed reward cannot be cancelled.
+
+The pause action now requires `rewardOrder` and `rewardItem` IDs. The server verifies that the selected user owns an unused paid item, then persists its consumption and the pause in one session save. The setup drink does not count as a purchased reward. Reward breaks release seats. A five-second server interval resumes expired breaks when capacity permits, including when the browser is closed. If seats are full, the session waits; the client can choose another area. Stop remains available at all times, and early stops earn no credits.
+
+Orders, cancellations, seat changes, and reward consumption use the same single-process Promise queue. Mission awards and spent orders remain the source of truth, avoiding an independently editable wallet balance. Full browser/API tests cover concurrent spending, duplicate rewards, break expiry, refund restrictions, and capacity. See the client `docs/TEMPO_REWARDS.md` for the exact user flow and frontend handoff. Focus Passport stamps remain separate and unimplemented.
