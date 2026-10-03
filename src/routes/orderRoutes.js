@@ -6,6 +6,8 @@ const FocusSession = require('../models/FocusSession');
 const Order = require('../models/Order');
 const philippineDayNumber = require('../utils/philippineDayNumber');
 
+const withSeatLock = require('../utils/seatLock');
+const { tempoRewards } = require('../utils/tempoRewards');
 const router = express.Router();
 
 async function calculateOrder(body) {
@@ -48,6 +50,7 @@ async function calculateOrder(body) {
     orderItems.push({
       menuItem: menuItem._id,
       name: menuItem.name,
+      category: menuItem.category,
       quantity: entry.quantity,
       unitPriceCredits: menuItem.priceCredits,
     });
@@ -62,6 +65,7 @@ async function calculateOrder(body) {
   );
   const discountCredits = focusDiscountApplied ? Math.round(subtotalCredits * 0.1) : 0;
 
+  const rewards = await tempoRewards(user);
   return {
     result: {
       user: existingUser._id,
@@ -70,6 +74,8 @@ async function calculateOrder(body) {
       discountCredits,
       totalCredits: subtotalCredits - discountCredits,
       focusDiscountApplied,
+      availableCredits: rewards.balance,
+      canAfford: rewards.balance >= subtotalCredits - discountCredits,
     },
   };
 }
@@ -124,22 +130,23 @@ router.get('/:id', async (request, response, next) => {
 });
 
 // POST /api/orders with { user, items: [{ menuItem, quantity }] }
-router.post('/', async (request, response, next) => {
+router.post('/', (request, response, next) => withSeatLock(async () => {
   try {
     const calculation = await calculateOrder(request.body);
     if (calculation.error) {
       return response.status(calculation.error.status).json({ message: calculation.error.message });
     }
 
-    const order = await Order.create(calculation.result);
+    if (!calculation.result.canAfford) return response.status(400).json({ message: 'Not enough Tempo Credits. Complete a mission to earn more.' });
+    const order = await Order.create({ ...calculation.result, creditsCharged: true });
     response.status(201).json(order);
   } catch (error) {
     next(error);
   }
-});
+}).catch(next));
 
 // PATCH /api/orders/:id with { status: 'cancelled' }
-router.patch('/:id', async (request, response, next) => {
+router.patch('/:id', (request, response, next) => withSeatLock(async () => {
   try {
     if (!mongoose.Types.ObjectId.isValid(request.params.id)) {
       return response.status(400).json({ message: 'Invalid order ID' });
@@ -156,12 +163,14 @@ router.patch('/:id', async (request, response, next) => {
       return response.status(400).json({ message: 'Only placed orders can be cancelled' });
     }
 
+    const used = await FocusSession.findOne({ 'rewardBreaks.order': order._id });
+    if (used) return response.status(400).json({ message: 'An item from this order has already been used. It cannot be refunded.' });
     order.status = 'cancelled';
     await order.save();
     response.json(order);
   } catch (error) {
     next(error);
   }
-});
+}).catch(next));
 
 module.exports = router;

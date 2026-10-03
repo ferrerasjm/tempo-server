@@ -28,6 +28,7 @@ app.use('/api/focus-sessions', focusSessionRoutes);
 app.use('/api/menu-items', menuItemRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/rewards', require('./routes/rewardRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);

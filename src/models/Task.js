@@ -9,6 +9,7 @@ const taskSchema = new mongoose.Schema({
   estimatedMinutes: { type: Number, required: true, min: 15, max: 480 },
   status: { type: String, enum: ['todo', 'in_progress', 'completed'], default: 'todo' },
   completedAt: { type: Date, default: null },
+  tempoCreditsEarned: { type: Number, min: 0, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Task', taskSchema);

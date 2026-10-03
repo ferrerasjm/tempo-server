@@ -9,6 +9,7 @@ const Reservation = require('../models/Reservation');
 const getPeakReservedSeats = require('../utils/seatAvailability');
 const withSeatLock = require('../utils/seatLock');
 const { elapsedMilliseconds } = require('../utils/sessionClock');
+const { tempoRewards, SESSION_CREDITS, TASK_CREDITS, BREAK_MINUTES } = require('../utils/tempoRewards');
 const focusRecommendation = require('../utils/focusRecommendation');
 
 const router = express.Router();
@@ -141,7 +142,7 @@ router.patch('/:id', (request, response, next) => withSeatLock(async () => {
     if (!mongoose.Types.ObjectId.isValid(request.params.id)) return response.status(400).json({ message: 'Invalid focus session ID' });
     const session = await FocusSession.findById(request.params.id);
     if (!session) return response.status(404).json({ message: 'Focus session not found' });
-    const { action, status, completedMinutes, area } = request.body || {};
+    const { action, status, completedMinutes, area, rewardOrder, rewardItem } = request.body || {};
     const now = new Date();
     if (action) {
       if (!['start', 'pause', 'resume', 'move', 'stop'].includes(action)) return response.status(400).json({ message: 'Unknown session action' });
@@ -161,17 +162,30 @@ router.patch('/:id', (request, response, next) => withSeatLock(async () => {
         if (action === 'start') session.startedAt = now;
         if (action === 'resume') session.pausedMilliseconds = (session.pausedMilliseconds || 0) + now.getTime() - session.pausedAt.getTime();
         session.pausedAt = null;
+        session.rewardBreakEndsAt = null;
         session.status = 'active';
       } else if (action === 'pause') {
         if (session.status !== 'active') return response.status(400).json({ message: 'Only running sessions can pause' });
+        if (elapsedMilliseconds(session, now) >= session.plannedMinutes * 60000) return response.status(400).json({ message: 'Your timer is complete. Stop and save your session.' });
+        if (!mongoose.Types.ObjectId.isValid(rewardOrder) || !mongoose.Types.ObjectId.isValid(rewardItem)) {
+          return response.status(400).json({ message: 'Use a purchased reward item to take a short break.' });
+        }
+        const rewards = await tempoRewards(session.user);
+        const item = rewards.items.find(item => String(item.order) === String(rewardOrder) && String(item.menuItem) === String(rewardItem));
+        if (!item) return response.status(400).json({ message: 'This reward item is unavailable or has already been used.' });
+        const endsAt = new Date(now.getTime() + BREAK_MINUTES * 60000);
+        session.rewardBreaks.push({ order: item.order, menuItem: item.menuItem, name: item.name, startedAt: now, endsAt });
+        session.rewardBreakEndsAt = endsAt;
         session.status = 'paused';
         session.pausedAt = now;
       } else {
         const minutes = Math.min(120, Math.floor(elapsedMilliseconds(session, now) / 60000));
         session.completedMinutes = minutes;
         session.status = minutes > 0 ? 'completed' : 'cancelled';
+        if (elapsedMilliseconds(session, now) >= session.plannedMinutes * 60000) session.tempoCreditsEarned = SESSION_CREDITS;
         if (session.pausedAt) session.pausedMilliseconds = (session.pausedMilliseconds || 0) + now.getTime() - session.pausedAt.getTime();
         session.pausedAt = null;
+        session.rewardBreakEndsAt = null;
         session.endedAt = now;
       }
     } else {
@@ -189,6 +203,8 @@ router.patch('/:id', (request, response, next) => withSeatLock(async () => {
       if (status === 'completed') session.completedMinutes = completedMinutes;
     }
     await session.save();
+    // A task marked done before its timer finishes also receives its one-time award.
+    if (session.tempoCreditsEarned > 0) await Task.updateOne({ _id: session.task, status: 'completed' }, { $set: { tempoCreditsEarned: TASK_CREDITS } });
     response.json(withFocusScore(session));
   } catch (error) { next(error); }
 }).catch(next));

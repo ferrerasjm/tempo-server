@@ -4,6 +4,7 @@ const Task = require('../models/Task');
 const User = require('../models/User');
 const FocusSession = require('../models/FocusSession');
 const philippineDayNumber = require('../utils/philippineDayNumber');
+const { TASK_CREDITS } = require('../utils/tempoRewards');
 
 const router = express.Router();
 
@@ -145,6 +146,11 @@ router.patch('/:id', async (request, response, next) => {
     }
 
     if (changes.status === 'completed') changes.completedAt = new Date();
+    if (changes.status === 'completed') {
+      const qualified = await FocusSession.findOne({ task: request.params.id, tempoCreditsEarned: { $gt: 0 } });
+      // Setting a permanent award once avoids earning again by reopening a task.
+      if (qualified) changes.tempoCreditsEarned = TASK_CREDITS;
+    }
     if (changes.status === 'todo' || changes.status === 'in_progress') changes.completedAt = null;
 
     const task = await Task.findByIdAndUpdate(request.params.id, changes, {

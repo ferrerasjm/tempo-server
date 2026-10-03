@@ -16,6 +16,15 @@ const focusSessionSchema = new mongoose.Schema({
   startedAt: { type: Date, default: null },
   pausedAt: { type: Date, default: null },
   pausedMilliseconds: { type: Number, min: 0, default: 0 },
+  tempoCreditsEarned: { type: Number, min: 0, default: 0 },
+  rewardBreakEndsAt: { type: Date, default: null },
+  rewardBreaks: [{
+    order: { type: mongoose.Schema.Types.ObjectId, ref: 'Order', required: true },
+    menuItem: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
+    name: { type: String, required: true },
+    startedAt: { type: Date, required: true },
+    endsAt: { type: Date, required: true },
+  }],
   endedAt: { type: Date, default: null },
 }, { timestamps: true });
 
