@@ -2,11 +2,15 @@
   "name": "cafe-tempo-server",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12 <25",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/scripts/seed.js",
-    "test": "node --test tests/*.test.js"
+    "seed:reset": "node src/scripts/seed.js --reset"
   },
   "dependencies": {
     "cors": "^2.8.6",

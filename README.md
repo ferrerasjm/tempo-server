@@ -13,7 +13,7 @@ The project instructions conflict on whether to submit one repository or two. Th
 
 ## Run locally
 
-Use Node.js 20.19+ or 22.12+ (matching the Vite client requirement) and a MongoDB Atlas database. From the `server` folder:
+Use Node.js 22.12 through 24 and npm 10 or newer, as declared in `package.json`, with a MongoDB Atlas database. From the `server` folder:
 
 ```powershell
 npm.cmd install
@@ -27,7 +27,9 @@ npm.cmd run seed
 npm.cmd run dev
 ```
 
-The API starts at `http://localhost:5000`. Open `/api/health` to check the server and `/api/menu-items` to check seeded data. Running the seed again will reuse its sample records.
+For a predictable presentation account, run `npm.cmd run seed:reset` instead of `seed`. It deletes and recreates only tasks, sessions, reservations, and orders owned by `demo@cafetempo.test`; it does not delete other profiles.
+
+The API starts at `http://localhost:5000`. Open `/api/health` to check the server and `/api/menu-items` to check seeded data. Running `seed` again reuses sample records; `seed:reset` refreshes the demo profile and its time-relative records.
 
 | Variable | Purpose |
 | --- | --- |
@@ -35,7 +37,7 @@ The API starts at `http://localhost:5000`. Open `/api/health` to check the serve
 | `MONGO_URI` | MongoDB Atlas connection string, including database name. |
 | `CLIENT_ORIGIN` | Allowed React development origin; defaults to `http://localhost:5173`. |
 
-The seed creates a demo user (`demo@cafetempo.test`), tasks, cafe areas, focus history, menu items, a reservation, and an order. Get the user's `_id` from `GET /api/tasks` or MongoDB Atlas. Replace `<userId>`, `<taskId>`, `<areaId>`, `<itemId>`, and other bracketed IDs in the examples below with real `_id` values. Date-time inputs must include a timezone, for example `2030-06-01T10:00:00+08:00`. Reservation dates must be in the future when you test them.
+The seed creates a demo user (`demo@cafetempo.test`), tasks, cafe areas, focus history with Tempo Credits, menu items, a future reservation, and a demonstration order. Get the user's `_id` from `GET /api/users` or MongoDB Atlas. Replace `<userId>`, `<taskId>`, `<areaId>`, `<itemId>`, and other bracketed IDs in the examples below with real `_id` values. Date-time inputs must include a timezone, for example `2030-06-01T10:00:00+08:00`. Reservation dates must be in the future when you test them.
 
 ## Data and calculations
 
@@ -86,15 +88,15 @@ In the table, `GET` request examples show query strings where useful. Body examp
 | POST | `/api/orders` | Place order | Same body as `/api/orders/calculate` | `{"_id":"<orderId>","status":"placed","totalCredits":54}` |
 | PATCH | `/api/orders/:id` | Cancel placed order | `{"status":"cancelled"}` | `{"status":"cancelled"}` |
 
-Task difficulty is `low`, `medium`, or `high`; task status is `todo`, `in_progress`, or `completed`. Focus session status can be `planned`, `active`, `paused`, `completed`, or `cancelled` through the public routes. Order quantity must be a whole number from 1 to 20 per item; list each item once. Totals and discounts are recalculated when an order is placed. A task already linked to a focus session cannot be deleted.
+Task difficulty is `low`, `medium`, or `high`; task status is `todo`, `in_progress`, or `completed`. Focus session status can be `planned`, `active`, `paused`, `completed`, or `cancelled` through the public routes. Order quantity must be a whole number from 1 to 20 per item; list each item once. Totals and discounts are recalculated when an order is placed. A task linked to an unfinished session cannot be deleted; otherwise deletion is soft so completed session history retains its task reference and title.
 
 For a real request in Thunder Client, first call `GET /api/menu-items`, copy a menu item's `_id`, then send `POST /api/orders/calculate` with the demo user ID and that item ID. The preview does not save an order; `POST /api/orders` saves it.
 
 ## Checks and current limits
 
-The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. The React draft's browser tests also cover task creation/editing/deletion, session reload/completion, discounts, orders, reservations, statistics, mobile navigation, and error recovery using an isolated profile. Final review after UI refinement is still needed.
+The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. The React client's browser tests cover task creation/editing/deletion, session reload/completion, discounts, orders, reservations, statistics, mobile navigation, and error recovery using an isolated profile.
 
-- A working React draft and its screenshots are in the client repository. Final UI refinement and the frontend partner's name/contributions remain before submission.
+- The React client is in the client repository. Add the frontend partner's confirmed name and contribution summary before submission.
 - There is no password login or payment. The draft uses a selected user ID, virtual credits, and a browser countdown derived from the saved session timestamp.
 - A shared Promise queue serializes booking and session seat checks within one Node process. Concurrent one-seat booking/start tests pass. Multiple server instances would require database-level concurrency protection.
 - Confirm the repository submission format and exact deadline in the Microsoft Teams assignment.
@@ -121,11 +123,11 @@ Availability includes running sessions until their predicted timer end. Complete
 
 A full timer saved with the stop action earns 20 Tempo Credits. Completing its task earns 15 once per task. Awards are permanent server fields; reopening a task, repeating a stop, or submitting manual completed minutes cannot duplicate them. Legacy seed sessions/orders do not automatically grant credit or inventory.
 
-`GET /api/rewards?user=<userId>` computes balance from session/task awards minus paid, non-cancelled orders. It also returns available quantities, mission progress, and the five-minute break limit. `POST /api/orders/calculate` includes `availableCredits` and `canAfford`; order creation rejects insufficient funds and saves `creditsCharged: true`. Cancellation refunds entirely unused orders; an order with any consumed reward cannot be cancelled.
+`GET /api/rewards?user=<userId>` computes balance from session/task awards minus paid, non-cancelled orders. It returns available quantities, mission progress, and a 5/10/15-minute duration on each pastry item. Its top-level five-minute value remains a compatibility default. `POST /api/orders/calculate` includes `availableCredits` and `canAfford`; order creation rejects insufficient funds and saves `creditsCharged: true`. Cancellation refunds entirely unused orders; an order with any consumed reward cannot be cancelled.
 
 Ordinary pause requires no purchase. A timed reward break additionally sends `rewardOrder` and `rewardItem` IDs. The server verifies that the selected user owns an unused paid item, then persists its consumption and the pause in one session save. The setup drink does not count as a purchased reward. Reward breaks release seats. A five-second server interval resumes expired breaks when capacity permits, including when the browser is closed. If seats are full, the session waits; the client can choose another area. Stop remains available at all times, and early stops earn no credits.
 
-Orders, cancellations, seat changes, and reward consumption use the same single-process Promise queue. Mission awards and spent orders remain the source of truth, avoiding an independently editable wallet balance. Full browser/API tests cover concurrent spending, duplicate rewards, break expiry, refund restrictions, and capacity. See the client `docs/TEMPO_REWARDS.md` for the exact user flow and frontend handoff. Focus Passport stamps remain separate and unimplemented.
+Orders, cancellations, seat changes, and reward consumption use the same single-process Promise queue. Mission awards and spent orders remain the source of truth, avoiding an independently editable wallet balance. Focus Passport stamps remain separate and unimplemented.
 
 ## Reliable timer and request behavior
 
@@ -135,4 +137,4 @@ Task, session, and order POST requests accept an optional `requestKey` string of
 
 Space movement checks capacity while running. Moving a planned or paused session updates its selected area without starting its clock. Reward purchases are consumed from Your Orders, with availability rechecked on the server.
 
-Run `node --test tests/logic.test.js` for the six server regression checks. The client browser integration suite uses temporary Atlas profiles and cleans up their data.
+Run `npm.cmd run dev` to start the API for manual verification.
