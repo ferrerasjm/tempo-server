@@ -1,9 +1,13 @@
-const philippineDayNumber = require('./philippineDayNumber');
+const philippineDayNumber = require("./philippineDayNumber");
 
 function focusStreak(sessions, today = new Date()) {
-  const days = [...new Set(sessions
-    .filter(session => session.endedAt)
-    .map(session => philippineDayNumber(session.endedAt)))].sort((a, b) => b - a);
+  const days = [
+    ...new Set(
+      sessions
+        .filter((session) => session.endedAt)
+        .map((session) => philippineDayNumber(session.endedAt)),
+    ),
+  ].sort((a, b) => b - a);
 
   if (days.length === 0) return { currentStreak: 0, longestStreak: 0 };
 
