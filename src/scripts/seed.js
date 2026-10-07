@@ -24,20 +24,36 @@ async function seed() {
   await connectDB();
 
   const reset = process.argv.includes("--reset");
-  const demoUser = await User.findOne({ email: "demo@cafetempo.test" });
-  if (reset && demoUser) {
+  const profileEmails = [
+    "mjferreras01@gmail.com",
+    "nicasalvads@gmail.com",
+  ];
+  const profiles = await User.find({ email: { $in: profileEmails } });
+  if (reset && profiles.length) {
+    const profileIds = profiles.map((profile) => profile._id);
     await Promise.all([
-      Order.deleteMany({ user: demoUser._id }),
-      Reservation.deleteMany({ user: demoUser._id }),
-      FocusSession.deleteMany({ user: demoUser._id }),
-      Task.deleteMany({ user: demoUser._id }),
+      Order.deleteMany({ user: { $in: profileIds } }),
+      Reservation.deleteMany({ user: { $in: profileIds } }),
+      FocusSession.deleteMany({ user: { $in: profileIds } }),
+      Task.deleteMany({ user: { $in: profileIds } }),
     ]);
   }
 
   const user = await findOrCreate(
     User,
-    { email: "demo@cafetempo.test" },
-    { displayName: "Demo Student", email: "demo@cafetempo.test" },
+    { email: profileEmails[0] },
+    {
+      displayName: "Jan Matthew Ferreras",
+      email: profileEmails[0],
+    },
+  );
+  await findOrCreate(
+    User,
+    { email: profileEmails[1] },
+    {
+      displayName: "Nica Isabele T. Salvadora",
+      email: profileEmails[1],
+    },
   );
 
   const areaData = [
@@ -138,87 +154,6 @@ async function seed() {
     }
   }
 
-  const reviewTask = await findOrCreate(
-    Task,
-    { user: user._id, title: "Review database relationships" },
-    {
-      user: user._id,
-      title: "Review database relationships",
-      description: "Draw the links between Cafe Tempo collections.",
-      deadline: hoursFromNow(24),
-      difficulty: "medium",
-      estimatedMinutes: 90,
-    },
-  );
-
-  await findOrCreate(
-    Task,
-    { user: user._id, title: "Prepare API demo" },
-    {
-      user: user._id,
-      title: "Prepare API demo",
-      description: "Practice success, validation, and missing-record cases.",
-      deadline: hoursFromNow(48),
-      difficulty: "high",
-      estimatedMinutes: 150,
-    },
-  );
-
-  const notesTask = await findOrCreate(
-    Task,
-    { user: user._id, title: "Outline study notes" },
-    {
-      user: user._id,
-      title: "Outline study notes",
-      deadline: hoursFromNow(72),
-      difficulty: "low",
-      estimatedMinutes: 45,
-      status: "completed",
-      completedAt: hoursFromNow(-20),
-      tempoCreditsEarned: 15,
-    },
-  );
-
-  await findOrCreate(
-    FocusSession,
-    { user: user._id, task: notesTask._id, status: "completed" },
-    {
-      user: user._id,
-      task: notesTask._id,
-      area: areas["Window Seat"]._id,
-      plannedMinutes: 45,
-      completedMinutes: 45,
-      breakMinutes: 10,
-      energyLevel: "medium",
-      status: "completed",
-      startedAt: hoursFromNow(-21),
-      endedAt: hoursFromNow(-20.25),
-      tempoCreditsEarned: 20,
-      taskConfirmed: true,
-      taskCompleted: true,
-    },
-  );
-
-  await findOrCreate(
-    FocusSession,
-    { user: user._id, task: reviewTask._id, status: "completed" },
-    {
-      user: user._id,
-      task: reviewTask._id,
-      area: areas["Quiet Corner"]._id,
-      plannedMinutes: 50,
-      completedMinutes: 40,
-      breakMinutes: 10,
-      energyLevel: "high",
-      status: "completed",
-      startedAt: hoursFromNow(-3),
-      endedAt: hoursFromNow(-2.33),
-      tempoCreditsEarned: 20,
-      taskConfirmed: true,
-      taskCompleted: false,
-    },
-  );
-
   await findOrCreate(
     Reservation,
     { user: user._id, area: areas["Window Seat"]._id, status: "active" },
@@ -231,27 +166,8 @@ async function seed() {
     },
   );
 
-  await findOrCreate(
-    Order,
-    { user: user._id, "items.menuItem": menuItems["Cafe Latte"]._id },
-    {
-      user: user._id,
-      items: [
-        {
-          menuItem: menuItems["Cafe Latte"]._id,
-          name: "Cafe Latte",
-          quantity: 1,
-          unitPriceCredits: 30,
-        },
-      ],
-      subtotalCredits: 30,
-      discountCredits: 0,
-      totalCredits: 30,
-    },
-  );
-
   console.log(
-    `Cafe Tempo sample data is ready${reset ? " after resetting the demo profile" : ""}.`,
+    `Cafe Tempo sample data is ready${reset ? " after resetting the seeded profiles" : ""}.`,
   );
 }
 

@@ -27,9 +27,9 @@ npm.cmd run seed
 npm.cmd run dev
 ```
 
-For a predictable presentation account, run `npm.cmd run seed:reset` instead of `seed`. It deletes and recreates only tasks, sessions, reservations, and orders owned by `demo@cafetempo.test`; it does not delete other profiles.
+For predictable presentation profiles, run `npm.cmd run seed:reset` instead of `seed`. It deletes and recreates only tasks, sessions, reservations, and orders owned by the seeded profiles; it does not delete other profiles.
 
-The API starts at `http://localhost:5000`. Open `/api/health` to check the server and `/api/menu-items` to check seeded data. Running `seed` again reuses sample records; `seed:reset` refreshes the demo profile and its time-relative records.
+The API starts at `http://localhost:5000`. Open `/api/health` to check the server and `/api/menu-items` to check seeded data. Running `seed` again reuses sample records; `seed:reset` refreshes the seeded profiles and their time-relative records.
 
 | Variable | Purpose |
 | --- | --- |
@@ -37,11 +37,11 @@ The API starts at `http://localhost:5000`. Open `/api/health` to check the serve
 | `MONGO_URI` | MongoDB Atlas connection string, including database name. |
 | `CLIENT_ORIGIN` | Allowed React development origin; defaults to `http://localhost:5173`. |
 
-The seed creates a demo user (`demo@cafetempo.test`), tasks, cafe areas, focus history with Tempo Credits, menu items, a future reservation, and a demonstration order. Get the user's `_id` from `GET /api/users` or MongoDB Atlas. Replace `<userId>`, `<taskId>`, `<areaId>`, `<itemId>`, and other bracketed IDs in the examples below with real `_id` values. Date-time inputs must include a timezone, for example `2030-06-01T10:00:00+08:00`. Reservation dates must be in the future when you test them.
+The seed creates profiles for Jan Matthew Ferreras (`mjferreras01@gmail.com`) and Nica Isabele T. Salvadora (`nicasalvads@gmail.com`), plus cafe areas, menu items, and a future reservation. Profiles start without task history, focus history, or order history; tasks, sessions, and purchases are created through the normal app flow. Get a profile's `_id` from `GET /api/users` or MongoDB Atlas. Replace `<userId>`, `<taskId>`, `<areaId>`, `<itemId>`, and other bracketed IDs in the examples below with real `_id` values. Date-time inputs must include a timezone, for example `2030-06-01T10:00:00+08:00`. Reservation dates must be in the future when you test them.
 
 ## Data and calculations
 
-Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeAreas`, `reservations`, `menuItems`, and `orders`. Mongoose schemas define required fields, validation, references, and timestamps. There is no login in this version; requests use the selected demo user's ID. Authentication is optional in the project rubric.
+Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeAreas`, `reservations`, `menuItems`, and `orders`. Mongoose schemas define required fields, validation, references, and timestamps. There is no login in this version; requests use the selected profile's ID. Authentication is optional in the project rubric.
 
 - **Task priority:** today or overdue +3, tomorrow +2, high difficulty +2, and estimated work over 120 minutes +1. Unfinished tasks are sorted by score, then deadline.
 - **Focus recommendation:** starts at 25, 40, or 50 minutes for low, medium, or high energy. Difficulty and urgency adjust the length; it stays within the task estimate and at least 15 minutes. The break is 5, 10, or 15 minutes based on the result.
@@ -59,7 +59,7 @@ In the table, `GET` request examples show query strings where useful. Body examp
 | Method | Path | Purpose | Sample request | Sample response |
 | --- | --- | --- | --- | --- |
 | GET | `/api/rewards` | Calculate Tempo Credits, inventory, and missions | `?user=<userId>` | `{"balance":20,"items":[],"missions":[...]}` |
-| GET | `/api/users` | Choose an existing demo profile (not authentication) | `/api/users` | `[{"_id":"<userId>","displayName":"Demo Student"}]` |
+| GET | `/api/users` | Choose an existing profile (not authentication) | `/api/users` | `[{"_id":"<userId>","displayName":"Jan Matthew Ferreras"}]` |
 | GET | `/api/tasks` | List tasks | `?user=<userId>` | `[{"title":"Prepare API demo"}]` |
 | GET | `/api/tasks/priorities` **P** | Rank unfinished tasks | `?user=<userId>` | `{"rules":{...},"tasks":[{"priorityScore":3}]}` |
 | GET | `/api/tasks/:id` | Get one task | `/api/tasks/<taskId>` | `{"title":"Prepare API demo"}` |
@@ -90,7 +90,7 @@ In the table, `GET` request examples show query strings where useful. Body examp
 
 Task difficulty is `low`, `medium`, or `high`; task status is `todo`, `in_progress`, or `completed`. Focus session status can be `planned`, `active`, `paused`, `completed`, or `cancelled` through the public routes. Order quantity must be a whole number from 1 to 20 per item; list each item once. Totals and discounts are recalculated when an order is placed. A task linked to an unfinished session cannot be deleted; otherwise deletion is soft so completed session history retains its task reference and title.
 
-For a real request in Thunder Client, first call `GET /api/menu-items`, copy a menu item's `_id`, then send `POST /api/orders/calculate` with the demo user ID and that item ID. The preview does not save an order; `POST /api/orders` saves it.
+For a real request in Thunder Client, first call `GET /api/menu-items`, copy a menu item's `_id`, then send `POST /api/orders/calculate` with a profile ID and that item ID. The preview does not save an order; `POST /api/orders` saves it.
 
 ## Checks and current limits
 
@@ -121,7 +121,7 @@ Availability includes running sessions until their predicted timer end. Complete
 
 ## Tempo Credits gamification
 
-A full timer saved with the stop action earns 20 Tempo Credits. Completing its task earns 15 once per task. Awards are permanent server fields; reopening a task, repeating a stop, or submitting manual completed minutes cannot duplicate them. Legacy seed sessions/orders do not automatically grant credit or inventory.
+A full timer saved with the stop action earns 20 Tempo Credits. Completing its task earns 15 once per task. Awards are permanent server fields; reopening a task, repeating a stop, or submitting manual completed minutes cannot duplicate them. Orders do not automatically grant credit or inventory.
 
 `GET /api/rewards?user=<userId>` computes balance from session/task awards minus paid, non-cancelled orders. It returns available quantities, mission progress, and a 5/10/15-minute duration on each pastry item. Its top-level five-minute value remains a compatibility default. `POST /api/orders/calculate` includes `availableCredits` and `canAfford`; order creation rejects insufficient funds and saves `creditsCharged: true`. Cancellation refunds entirely unused orders; an order with any consumed reward cannot be cancelled.
 

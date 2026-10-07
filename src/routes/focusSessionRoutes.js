@@ -39,12 +39,13 @@ router.get("/", async (request, response, next) => {
   try {
     const filter = {};
 
-    if (request.query.user) {
-      if (!mongoose.Types.ObjectId.isValid(request.query.user)) {
-        return response.status(400).json({ message: "Invalid user ID" });
-      }
-      filter.user = request.query.user;
+    if (!request.query.user) {
+      return response.status(400).json({ message: "User ID is required" });
     }
+    if (!mongoose.Types.ObjectId.isValid(request.query.user)) {
+      return response.status(400).json({ message: "Invalid user ID" });
+    }
+    filter.user = request.query.user;
 
     if (request.query.status) {
       if (
