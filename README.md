@@ -5,9 +5,11 @@ Cafe Tempo is a virtual productivity cafe where a user plans tasks, chooses a ca
 ## Team and repositories
 
 - Jan Matthew Ferreras: backend API, database models, seed data, and server documentation.
-- Frontend partner: add their confirmed name and contributions before submission.
+- Nica Isabele Salvadora: client-side frontend design and adjustments.
 - Client repository: <https://github.com/ferrerasjan/tempo-client>
 - Server repository: <https://github.com/ferrerasjan/tempo-server>
+
+Both members have pushed their contributions to GitHub, as confirmed by the team.
 
 The project instructions conflict on whether to submit one repository or two. The group chose separate client and server repositories; confirm the final submission format with the instructor.
 
@@ -29,7 +31,7 @@ npm.cmd run dev
 
 For predictable presentation profiles, run `npm.cmd run seed:reset` instead of `seed`. It deletes and recreates only tasks, sessions, reservations, and orders owned by the seeded profiles; it does not delete other profiles.
 
-The API starts at `http://localhost:5000`. Open `/api/health` to check the server and `/api/menu-items` to check seeded data. Running `seed` again reuses sample records; `seed:reset` refreshes the seeded profiles and their time-relative records.
+The API starts at `http://localhost:5000`. Open `/api/health` to check the server. Log in and send a bearer token to inspect `/api/menu-items`; it is protected. Running `seed` again reuses sample records. `seed:reset` deletes activity owned by the seeded profiles; it does not create task, focus, or order history. Existing reservations matched by `seed` can keep their original dates, so check their dates before the demonstration.
 
 | Variable | Purpose |
 | --- | --- |
@@ -52,14 +54,20 @@ The domain collections are `users`, `tasks`, `focusSessions`, `cafeAreas`, `rese
 
 ## API inventory
 
-There are **29 project endpoints**, including six processing endpoints marked **P**. `/api/health` is an additional server check. All error responses use `{ "message": "..." }`; invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`.
+There are **35 endpoints total**: 30 domain endpoints, four authentication endpoints, and one health check. Seven domain endpoints perform processing; they are marked **P** below. Error responses include a `message` string and can also include a `field` for form errors. Invalid input returns `400`, missing records return `404`, successful creates return `201`, and unexpected errors return `500`. Authentication additionally uses `401`, `403`, `409`, and `429`; logout returns `204`, and idempotent creation retries can return `200`.
 
 In the table, `GET` request examples show query strings where useful. Body examples are abbreviated JSON; omitted fields are described in the route section below.
 
 | Method | Path | Purpose | Sample request | Sample response |
 | --- | --- | --- | --- | --- |
-| GET | `/api/rewards` | Calculate Tempo Credits, inventory, and missions | `?user=<userId>` | `{"balance":20,"items":[],"missions":[...]}` |
-| GET | `/api/users` | Choose an existing profile (not authentication) | `/api/users` | `[{"_id":"<userId>","displayName":"Jan Matthew Ferreras"}]` |
+| POST | `/api/auth/signup` | Create an account | `{"displayName":"Your name","email":"you@example.com","password":"example-password","confirmPassword":"example-password"}` | `{"message":"Account created successfully. Please log in."}` |
+| POST | `/api/auth/login` | Verify credentials and create a session | `{"email":"you@example.com","password":"example-password"}` | `{"token":"<token>","user":{"_id":"<userId>","displayName":"Your name","email":"you@example.com"}}` |
+| GET | `/api/auth/me` | Restore the authenticated account | Bearer token header | `{"_id":"<userId>","displayName":"Your name","email":"you@example.com"}` |
+| POST | `/api/auth/logout` | Revoke the current login session | Bearer token header | `204` with no JSON body |
+| GET | `/api/health` | Public server health check | `/api/health` | `{"status":"ok","service":"cafe-tempo-api"}` |
+| GET | `/api/rewards` **P** | Calculate Tempo Credits, inventory, and missions | `?user=<userId>` | `{"balance":20,"items":[],"missions":[...]}` |
+| GET | `/api/users` | Return the current authenticated account | `/api/users` | `[{"_id":"<userId>","displayName":"Jan Matthew Ferreras"}]` |
+| PATCH | `/api/users/me` | Update the current account's display name | `{"displayName":"Your updated name"}` | `{"_id":"<userId>","displayName":"Your updated name","email":"you@example.com"}` |
 | GET | `/api/tasks` | List tasks | `?user=<userId>` | `[{"title":"Prepare API demo"}]` |
 | GET | `/api/tasks/priorities` **P** | Rank unfinished tasks | `?user=<userId>` | `{"rules":{...},"tasks":[{"priorityScore":3}]}` |
 | GET | `/api/tasks/:id` | Get one task | `/api/tasks/<taskId>` | `{"title":"Prepare API demo"}` |
@@ -92,11 +100,18 @@ Task difficulty is `low`, `medium`, or `high`; task status is `todo`, `in_progre
 
 For a real request in Thunder Client, first call `GET /api/menu-items`, copy a menu item's `_id`, then send `POST /api/orders/calculate` with a profile ID and that item ID. The preview does not save an order; `POST /api/orders` saves it.
 
+## Screenshots
+
+These application screenshots use browser fixtures and a fallback font; they do not demonstrate API persistence.
+
+![Task Board](docs/screenshots/task-board.png)
+![Focus session](docs/screenshots/focus.png)
+
 ## Checks and current limits
 
-The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. The React client's browser tests cover task creation/editing/deletion, session reload/completion, discounts, orders, reservations, statistics, mobile navigation, and error recovery using an isolated profile.
+Current verification includes source inspection of the routes/business rules, a successful read-only Atlas ping and collection counts, and the passing authentication/session/account-isolation test with model stubs. The React build passes. Browser fixture comparisons cover application layouts at 375px and desktop, including profile overlays. These checks do not establish that every domain endpoint, mutation, persistence flow, or concurrency edge case works against live Atlas; demonstrate those flows before submission.
 
-- The React client is in the client repository. Add the frontend partner's confirmed name and contribution summary before submission.
+- The React client is in the client repository; Nica Isabele Salvadora handles client-side frontend design and adjustments.
 - There is no payment. The app uses virtual credits and a browser countdown derived from the saved session timestamp.
 - A shared Promise queue serializes booking and session seat checks within one Node process. Concurrent one-seat booking/start tests pass. Multiple server instances would require database-level concurrency protection.
 - Confirm the repository submission format and exact deadline in the Microsoft Teams assignment.
