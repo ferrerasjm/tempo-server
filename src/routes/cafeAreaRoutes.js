@@ -30,12 +30,9 @@ router.get("/:id/availability", async (request, response, next) => {
     const endsAt = parseDateTime(request.query.endsAt);
 
     if (!startsAt || !endsAt || endsAt <= startsAt) {
-      return response
-        .status(400)
-        .json({
-          message:
-            "Provide date-times with a timezone; end must be after start",
-        });
+      return response.status(400).json({
+        message: "Provide date-times with a timezone; end must be after start",
+      });
     }
 
     // Two reservations overlap when each starts before the other ends.

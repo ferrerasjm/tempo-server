@@ -237,11 +237,9 @@ router.delete("/:id", (request, response, next) =>
         status: { $in: ["planned", "active", "paused"] },
       });
       if (usedBySession) {
-        return response
-          .status(400)
-          .json({
-            message: "End this task’s current timer before deleting it",
-          });
+        return response.status(400).json({
+          message: "End this task’s current timer before deleting it",
+        });
       }
 
       // Keep the record for session references and earned credits, but hide it from the board.

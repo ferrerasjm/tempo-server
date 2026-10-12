@@ -26,9 +26,17 @@ app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api", authenticate);
 app.use("/api/tasks", ownData(require("./models/Task")), taskRoutes);
 app.use("/api/cafe-areas", cafeAreaRoutes);
-app.use("/api/reservations", ownData(require("./models/Reservation")), reservationRoutes);
+app.use(
+  "/api/reservations",
+  ownData(require("./models/Reservation")),
+  reservationRoutes,
+);
 app.use("/api/focus", ownData(), focusRoutes);
-app.use("/api/focus-sessions", ownData(require("./models/FocusSession")), focusSessionRoutes);
+app.use(
+  "/api/focus-sessions",
+  ownData(require("./models/FocusSession")),
+  focusSessionRoutes,
+);
 app.use("/api/menu-items", menuItemRoutes);
 app.use("/api/orders", ownData(require("./models/Order")), orderRoutes);
 app.use("/api/users", userRoutes);

@@ -1,4 +1,9 @@
-const { randomBytes, scrypt, timingSafeEqual, createHash } = require("node:crypto");
+const {
+  randomBytes,
+  scrypt,
+  timingSafeEqual,
+  createHash,
+} = require("node:crypto");
 const { promisify } = require("node:util");
 const derive = promisify(scrypt);
 const options = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
@@ -11,10 +16,18 @@ async function hashPassword(password) {
 
 async function verifyPassword(password, stored) {
   const parts = typeof stored === "string" ? stored.split(":") : [];
-  const valid = parts.length === 3 && parts[0] === "scrypt" &&
-    /^[a-f0-9]{32}$/.test(parts[1]) && /^[a-f0-9]{128}$/.test(parts[2]);
+  const valid =
+    parts.length === 3 &&
+    parts[0] === "scrypt" &&
+    /^[a-f0-9]{32}$/.test(parts[1]) &&
+    /^[a-f0-9]{128}$/.test(parts[2]);
   // Do the same expensive work for accounts without a password or an unknown email.
-  const key = await derive(password, valid ? parts[1] : "0".repeat(32), 64, options);
+  const key = await derive(
+    password,
+    valid ? parts[1] : "0".repeat(32),
+    64,
+    options,
+  );
   const expected = valid ? Buffer.from(parts[2], "hex") : Buffer.alloc(64);
   return timingSafeEqual(key, expected) && valid;
 }

@@ -206,12 +206,9 @@ router.post("/", (request, response, next) =>
       }
 
       if (!calculation.result.canAfford)
-        return response
-          .status(400)
-          .json({
-            message:
-              "Not enough Tempo Credits. Complete a mission to earn more.",
-          });
+        return response.status(400).json({
+          message: "Not enough Tempo Credits. Complete a mission to earn more.",
+        });
       const order = await Order.create({
         ...calculation.result,
         creditsCharged: true,
@@ -250,12 +247,10 @@ router.patch("/:id", (request, response, next) =>
         "rewardBreaks.order": order._id,
       });
       if (used)
-        return response
-          .status(400)
-          .json({
-            message:
-              "An item from this order has already been used. It cannot be refunded.",
-          });
+        return response.status(400).json({
+          message:
+            "An item from this order has already been used. It cannot be refunded.",
+        });
       order.status = "cancelled";
       await order.save();
       response.json(order);

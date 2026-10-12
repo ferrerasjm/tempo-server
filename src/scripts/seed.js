@@ -24,10 +24,7 @@ async function seed() {
   await connectDB();
 
   const reset = process.argv.includes("--reset");
-  const profileEmails = [
-    "mjferreras01@gmail.com",
-    "nicasalvads@gmail.com",
-  ];
+  const profileEmails = ["mjferreras01@gmail.com", "nicasalvads@gmail.com"];
   const profiles = await User.find({ email: { $in: profileEmails } });
   if (reset && profiles.length) {
     const profileIds = profiles.map((profile) => profile._id);
@@ -91,15 +88,26 @@ async function seed() {
 
   const areas = {};
   for (const area of areaData) {
-    const oldName = area.name === "Library" ? "Library Table" : area.name === "Window View" ? "Window Seat" : "";
-    const existingOldArea = oldName ? await CafeArea.findOne({ name: oldName }) : null;
+    const oldName =
+      area.name === "Library"
+        ? "Library Table"
+        : area.name === "Window View"
+          ? "Window Seat"
+          : "";
+    const existingOldArea = oldName
+      ? await CafeArea.findOne({ name: oldName })
+      : null;
     if (existingOldArea) {
       existingOldArea.name = area.name;
       existingOldArea.theme = area.theme;
       await existingOldArea.save();
       areas[area.name] = existingOldArea;
     } else {
-      areas[area.name] = await findOrCreate(CafeArea, { name: area.name }, area);
+      areas[area.name] = await findOrCreate(
+        CafeArea,
+        { name: area.name },
+        area,
+      );
     }
   }
 

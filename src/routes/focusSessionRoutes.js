@@ -34,7 +34,6 @@ function withFocusScore(session) {
   return result;
 }
 
-
 router.get("/", async (request, response, next) => {
   try {
     const filter = {};
@@ -68,7 +67,6 @@ router.get("/", async (request, response, next) => {
     next(error);
   }
 });
-
 
 router.get("/:id", async (request, response, next) => {
   try {
@@ -130,11 +128,9 @@ router.post("/", (request, response, next) =>
         !mongoose.Types.ObjectId.isValid(task) ||
         !mongoose.Types.ObjectId.isValid(area)
       ) {
-        return response
-          .status(400)
-          .json({
-            message: "Valid user, task, and cafe area IDs are required",
-          });
+        return response.status(400).json({
+          message: "Valid user, task, and cafe area IDs are required",
+        });
       }
       if (!["low", "medium", "high"].includes(energyLevel))
         return response
@@ -190,11 +186,9 @@ router.post("/", (request, response, next) =>
         status: { $in: ["planned", "active", "paused"] },
       });
       if (unfinished)
-        return response
-          .status(400)
-          .json({
-            message: "Finish or cancel your existing focus session first",
-          });
+        return response.status(400).json({
+          message: "Finish or cancel your existing focus session first",
+        });
       const recommendation = focusRecommendation(existingTask, energyLevel);
       let selectedDrink = null;
       const sizeMinutes = { tall: 25, grande: 45, venti: 60 };
@@ -203,11 +197,9 @@ router.post("/", (request, response, next) =>
           !mongoose.Types.ObjectId.isValid(drink) ||
           !["tall", "grande", "venti"].includes(drinkSize)
         ) {
-          return response
-            .status(400)
-            .json({
-              message: "Choose a valid drink and size: tall, grande, or venti",
-            });
+          return response.status(400).json({
+            message: "Choose a valid drink and size: tall, grande, or venti",
+          });
         }
         selectedDrink = await MenuItem.findById(drink);
         if (
@@ -258,7 +250,6 @@ router.post("/", (request, response, next) =>
   }).catch(next),
 );
 
-
 router.patch("/:id", (request, response, next) =>
   withSeatLock(async () => {
     try {
@@ -299,8 +290,8 @@ router.patch("/:id", (request, response, next) =>
         const alreadyCompleted = task.status === "completed";
         const taskChangedAfterSession = Boolean(
           session.endedAt &&
-            task.updatedAt &&
-            new Date(task.updatedAt) > new Date(session.endedAt),
+          task.updatedAt &&
+          new Date(task.updatedAt) > new Date(session.endedAt),
         );
         if (!taskChangedAfterSession && taskCompleted) {
           task.status = "completed";
@@ -366,11 +357,9 @@ router.patch("/:id", (request, response, next) =>
             session.plannedMinutes - elapsedMilliseconds(session, now) / 60000,
           );
           if (!remainingMinutes)
-            return response
-              .status(400)
-              .json({
-                message: "The timer has ended. Stop and save this session.",
-              });
+            return response.status(400).json({
+              message: "The timer has ended. Stop and save this session.",
+            });
           const message = await seatError(
             session.user,
             target,
@@ -397,11 +386,9 @@ router.patch("/:id", (request, response, next) =>
             elapsedMilliseconds(session, now) >=
             session.plannedMinutes * 60000
           )
-            return response
-              .status(400)
-              .json({
-                message: "Your timer is complete. Stop and save your session.",
-              });
+            return response.status(400).json({
+              message: "Your timer is complete. Stop and save your session.",
+            });
           session.rewardBreakEndsAt = null;
           // Ordinary pauses freeze the timer until the user resumes it.
           // A supplied reward still consumes one item for a timed break.
@@ -410,11 +397,9 @@ router.patch("/:id", (request, response, next) =>
               !mongoose.Types.ObjectId.isValid(rewardOrder) ||
               !mongoose.Types.ObjectId.isValid(rewardItem)
             ) {
-              return response
-                .status(400)
-                .json({
-                  message: "Valid reward order and item IDs are required.",
-                });
+              return response.status(400).json({
+                message: "Valid reward order and item IDs are required.",
+              });
             }
             const rewards = await tempoRewards(session.user);
             const item = rewards.items.find(
@@ -423,12 +408,10 @@ router.patch("/:id", (request, response, next) =>
                 String(item.menuItem) === String(rewardItem),
             );
             if (!item)
-              return response
-                .status(400)
-                .json({
-                  message:
-                    "This reward item is unavailable or has already been used.",
-                });
+              return response.status(400).json({
+                message:
+                  "This reward item is unavailable or has already been used.",
+              });
             const rewardMinutes = item.breakMinutes || BREAK_MINUTES;
             const endsAt = new Date(now.getTime() + rewardMinutes * 60000);
             session.rewardBreaks.push({

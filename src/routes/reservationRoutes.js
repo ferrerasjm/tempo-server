@@ -74,12 +74,10 @@ router.post("/", (request, response, next) =>
       const start = parseDateTime(startsAt);
       const end = parseDateTime(endsAt);
       if (!start || !end || end <= start || start <= new Date()) {
-        return response
-          .status(400)
-          .json({
-            message:
-              "Reservation needs a future start, a later end, and a timezone on both dates",
-          });
+        return response.status(400).json({
+          message:
+            "Reservation needs a future start, a later end, and a timezone on both dates",
+        });
       }
 
       const existingUser = await User.findById(user);
@@ -115,11 +113,9 @@ router.post("/", (request, response, next) =>
 
       const focus = await FocusSession.findOne({ user, status: "active" });
       if (focus && focus.startedAt < end && sessionEndsAt(focus) > start) {
-        return response
-          .status(400)
-          .json({
-            message: "You already have a focus session during this time",
-          });
+        return response.status(400).json({
+          message: "You already have a focus session during this time",
+        });
       }
 
       const reservedSeats = await getPeakReservedSeats(area, start, end);
