@@ -14,8 +14,8 @@ function priorityFor(task, today) {
   let score = 0;
 
   if (daysUntilDue <= 0)
-    score += 3; // Today or overdue
-  else if (daysUntilDue === 1) score += 2; // Tomorrow
+    score += 3;
+  else if (daysUntilDue === 1) score += 2;
 
   if (task.difficulty === "high") score += 2;
   if (task.estimatedMinutes > 120) score += 1;
@@ -54,7 +54,6 @@ router.get("/", async (request, response, next) => {
   }
 });
 
-// Put this route before /:id so Express does not treat "priorities" as an ID.
 router.get("/priorities", async (request, response, next) => {
   try {
     const filter = { status: { $ne: "completed" }, deletedAt: null };
@@ -195,7 +194,6 @@ router.patch("/:id", async (request, response, next) => {
         task: request.params.id,
         tempoCreditsEarned: { $gt: 0 },
       });
-      // Setting a permanent award once avoids earning again by reopening a task.
       if (qualified) changes.tempoCreditsEarned = TASK_CREDITS;
     }
     if (changes.status === "todo" || changes.status === "in_progress")
@@ -242,7 +240,6 @@ router.delete("/:id", (request, response, next) =>
         });
       }
 
-      // Keep the record for session references and earned credits, but hide it from the board.
       await FocusSession.updateMany(
         {
           task: task._id,

@@ -35,7 +35,6 @@ router.get("/:id/availability", async (request, response, next) => {
       });
     }
 
-    // Two reservations overlap when each starts before the other ends.
     const reservedSeats = await getPeakReservedSeats(
       area._id,
       startsAt,

@@ -87,7 +87,6 @@ async function calculateOrder(body) {
 
   const sessions = await FocusSession.find({ user, status: "completed" });
   const today = philippineDayNumber(new Date());
-  // A completed focus session today earns 10% off, rounded to whole credits.
   const focusDiscountApplied = sessions.some(
     (session) =>
       session.endedAt && philippineDayNumber(session.endedAt) === today,

@@ -88,7 +88,6 @@ router.get("/:id", async (request, response, next) => {
   }
 });
 
-// Check the whole remaining focus window, including future bookings.
 async function seatError(user, areaId, minutes, now) {
   const area = await CafeArea.findById(areaId);
   if (!area) return "Cafe area not found";
@@ -108,7 +107,6 @@ async function seatError(user, areaId, minutes, now) {
   return "";
 }
 
-// Size-based sessions start as planned; the timer starts when a seat is taken.
 router.post("/", (request, response, next) =>
   withSeatLock(async () => {
     try {
@@ -285,8 +283,6 @@ router.patch("/:id", (request, response, next) =>
           await session.save();
           return response.json(withFocusScore(session));
         }
-        // A late confirmation from an older session must never reopen a task that
-        // has already been completed. Reopening remains an explicit Task Board action.
         const alreadyCompleted = task.status === "completed";
         const taskChangedAfterSession = Boolean(
           session.endedAt &&
@@ -390,8 +386,6 @@ router.patch("/:id", (request, response, next) =>
               message: "Your timer is complete. Stop and save your session.",
             });
           session.rewardBreakEndsAt = null;
-          // Ordinary pauses freeze the timer until the user resumes it.
-          // A supplied reward still consumes one item for a timed break.
           if (rewardOrder !== undefined || rewardItem !== undefined) {
             if (
               !mongoose.Types.ObjectId.isValid(rewardOrder) ||
@@ -492,7 +486,6 @@ router.patch("/:id", (request, response, next) =>
           session.tempoCreditsEarned = SESSION_CREDITS;
       }
       await session.save();
-      // A task marked done before its timer finishes also receives its one-time award.
       if (session.tempoCreditsEarned > 0)
         await Task.updateOne(
           { _id: session.task, status: "completed" },

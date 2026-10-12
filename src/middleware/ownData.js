@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Task = require("../models/Task");
 
-// Scope legacy user-ID routes to the authenticated account and check referenced records.
 module.exports = function ownData(Model) {
   return async (request, response, next) => {
     try {
@@ -13,7 +12,6 @@ module.exports = function ownData(Model) {
             .json({ message: "You can only access your own cafe data." });
         }
       }
-      // Express 5 exposes query through a getter; override with a scoped copy.
       Object.defineProperty(request, "query", {
         value: { ...request.query, user: userId },
         configurable: true,
