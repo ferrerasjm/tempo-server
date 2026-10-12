@@ -58,7 +58,7 @@ async function seed() {
 
   const areaData = [
     {
-      name: "Window Seat",
+      name: "Window View",
       theme: "Soft daylight and a view of the street.",
       capacity: 6,
       suggestedFocusMinutes: 50,
@@ -70,7 +70,7 @@ async function seed() {
       suggestedFocusMinutes: 45,
     },
     {
-      name: "Library Table",
+      name: "Library",
       theme: "Room to spread out notes and books.",
       capacity: 8,
       suggestedFocusMinutes: 50,
@@ -91,7 +91,16 @@ async function seed() {
 
   const areas = {};
   for (const area of areaData) {
-    areas[area.name] = await findOrCreate(CafeArea, { name: area.name }, area);
+    const oldName = area.name === "Library" ? "Library Table" : area.name === "Window View" ? "Window Seat" : "";
+    const existingOldArea = oldName ? await CafeArea.findOne({ name: oldName }) : null;
+    if (existingOldArea) {
+      existingOldArea.name = area.name;
+      existingOldArea.theme = area.theme;
+      await existingOldArea.save();
+      areas[area.name] = existingOldArea;
+    } else {
+      areas[area.name] = await findOrCreate(CafeArea, { name: area.name }, area);
+    }
   }
 
   const menuData = [
@@ -156,10 +165,10 @@ async function seed() {
 
   await findOrCreate(
     Reservation,
-    { user: user._id, area: areas["Window Seat"]._id, status: "active" },
+    { user: user._id, area: areas["Window View"]._id, status: "active" },
     {
       user: user._id,
-      area: areas["Window Seat"]._id,
+      area: areas["Window View"]._id,
       startsAt: hoursFromNow(1),
       endsAt: hoursFromNow(2),
       status: "active",

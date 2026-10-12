@@ -41,7 +41,7 @@ The seed creates profiles for Jan Matthew Ferreras (`mjferreras01@gmail.com`) an
 
 ## Data and calculations
 
-Seven related collections are used: `users`, `tasks`, `focusSessions`, `cafeAreas`, `reservations`, `menuItems`, and `orders`. Mongoose schemas define required fields, validation, references, and timestamps. There is no login in this version; requests use the selected profile's ID. Authentication is optional in the project rubric.
+The domain collections are `users`, `tasks`, `focusSessions`, `cafeAreas`, `reservations`, `menuItems`, and `orders`. Login sessions use `authSessions`. Mongoose schemas define required fields, validation, references, and timestamps. API requests require a valid login token and are scoped to the authenticated user.
 
 - **Task priority:** today or overdue +3, tomorrow +2, high difficulty +2, and estimated work over 120 minutes +1. Unfinished tasks are sorted by score, then deadline.
 - **Focus recommendation:** starts at 25, 40, or 50 minutes for low, medium, or high energy. Difficulty and urgency adjust the length; it stays within the task estimate and at least 15 minutes. The break is 5, 10, or 15 minutes based on the result.
@@ -97,7 +97,7 @@ For a real request in Thunder Client, first call `GET /api/menu-items`, copy a m
 The server routes have been checked against Atlas for task priorities, seat availability and reservations, focus recommendations and sessions, statistics and streaks, menu pricing, order placement, and cancellation. The React client's browser tests cover task creation/editing/deletion, session reload/completion, discounts, orders, reservations, statistics, mobile navigation, and error recovery using an isolated profile.
 
 - The React client is in the client repository. Add the frontend partner's confirmed name and contribution summary before submission.
-- There is no password login or payment. The draft uses a selected user ID, virtual credits, and a browser countdown derived from the saved session timestamp.
+- There is no payment. The app uses virtual credits and a browser countdown derived from the saved session timestamp.
 - A shared Promise queue serializes booking and session seat checks within one Node process. Concurrent one-seat booking/start tests pass. Multiple server instances would require database-level concurrency protection.
 - Confirm the repository submission format and exact deadline in the Microsoft Teams assignment.
 
@@ -138,3 +138,23 @@ Task, session, and order POST requests accept an optional `requestKey` string of
 Space movement checks capacity while running. Moving a planned or paused session updates its selected area without starting its clock. Reward purchases are consumed from Your Orders, with availability rechecked on the server.
 
 Run `npm.cmd run dev` to start the API for manual verification.
+
+## Password login
+
+The welcome screen now requires email and password. Existing seeded profiles keep their data, but have no default password. Set each password from an interactive terminal (input is hidden):
+
+```powershell
+cd server
+npm.cmd run set-password -- mjferreras01@gmail.com
+npm.cmd run set-password -- nicasalvads@gmail.com
+```
+
+Use at least eight characters. Setting a password also revokes that account's existing sessions. The seed command never overwrites passwords. New users can create an account from the Sign Up tab with their name, email, password, and password confirmation.
+
+`POST /api/auth/login` accepts `{ "email": "your@email.com", "password": "your-password" }` and returns `{ "token": "...", "user": { "_id": "...", "displayName": "...", "email": "..." } }`. Send `Authorization: Bearer <token>` with the existing API examples. `GET /api/auth/me` restores the current user; `POST /api/auth/logout` revokes the session. `/api/users` returns only the current account. Health checks remain public.
+
+`POST /api/auth/signup` accepts `{ "displayName": "Your name", "email": "your@email.com", "password": "your-password", "confirmPassword": "your-password" }` and returns a success message with status 201. Passwords must match and contain at least eight characters. Duplicate emails return 409. Signup creates the account without a login session; the screen returns smoothly to Login with the email prefilled, and users must log in to enter the cafe.
+
+Passwords use salted scrypt hashes; the server stores only hashes of random session tokens. Sessions expire after seven days, and login/signup attempts share a limit of 20 per IP per 15 minutes in each server process. Configure HTTPS when hosting the app. The client stores the token in localStorage so refreshes retain login; old profile selections no longer grant access.
+
+Run `npm.cmd run test:auth` for the password/session and account isolation checks. These use model stubs and do not access MongoDB.

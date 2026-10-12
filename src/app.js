@@ -12,6 +12,8 @@ const userRoutes = require("./routes/userRoutes");
 const requestLogger = require("./middleware/requestLogger");
 const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
+const authenticate = require("./middleware/authenticate");
+const ownData = require("./middleware/ownData");
 
 const app = express();
 
@@ -20,15 +22,17 @@ app.use(requestLogger);
 app.use(express.json());
 
 app.use("/api/health", healthRoutes);
-app.use("/api/tasks", taskRoutes);
+app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api", authenticate);
+app.use("/api/tasks", ownData(require("./models/Task")), taskRoutes);
 app.use("/api/cafe-areas", cafeAreaRoutes);
-app.use("/api/reservations", reservationRoutes);
-app.use("/api/focus", focusRoutes);
-app.use("/api/focus-sessions", focusSessionRoutes);
+app.use("/api/reservations", ownData(require("./models/Reservation")), reservationRoutes);
+app.use("/api/focus", ownData(), focusRoutes);
+app.use("/api/focus-sessions", ownData(require("./models/FocusSession")), focusSessionRoutes);
 app.use("/api/menu-items", menuItemRoutes);
-app.use("/api/orders", orderRoutes);
+app.use("/api/orders", ownData(require("./models/Order")), orderRoutes);
 app.use("/api/users", userRoutes);
-app.use("/api/rewards", require("./routes/rewardRoutes"));
+app.use("/api/rewards", ownData(), require("./routes/rewardRoutes"));
 
 app.use(notFound);
 app.use(errorHandler);

@@ -10,7 +10,9 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node src/scripts/seed.js",
-    "seed:reset": "node src/scripts/seed.js --reset"
+    "seed:reset": "node src/scripts/seed.js --reset",
+    "set-password": "node src/scripts/setPassword.js",
+    "test:auth": "node --test test/auth.test.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
