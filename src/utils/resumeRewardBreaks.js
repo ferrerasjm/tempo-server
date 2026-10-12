@@ -5,7 +5,6 @@ const getPeakReservedSeats = require("./seatAvailability");
 const withSeatLock = require("./seatLock");
 const { elapsedMilliseconds } = require("./sessionClock");
 
-// Recheck expired breaks even when their browser tab is closed.
 function resumeRewardBreaks() {
   return withSeatLock(async () => {
     const now = new Date();

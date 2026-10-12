@@ -9,7 +9,6 @@ const Reservation = require("../models/Reservation");
 const MenuItem = require("../models/MenuItem");
 const Order = require("../models/Order");
 
-// Find the sample record first so running the seed again does not duplicate it.
 async function findOrCreate(Model, search, data) {
   const existing = await Model.findOne(search);
   if (existing) return existing;

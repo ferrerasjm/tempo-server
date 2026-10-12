@@ -7,7 +7,6 @@ const SESSION_CREDITS = 20;
 const TASK_CREDITS = 15;
 const BREAK_MINUTES = 5;
 
-// Awards and paid orders are the source of truth; there is no editable balance.
 async function tempoRewards(user) {
   const [sessions, tasks, orders] = await Promise.all([
     FocusSession.find({ user }),

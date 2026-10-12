@@ -21,7 +21,6 @@ async function verifyPassword(password, stored) {
     parts[0] === "scrypt" &&
     /^[a-f0-9]{32}$/.test(parts[1]) &&
     /^[a-f0-9]{128}$/.test(parts[2]);
-  // Do the same expensive work for accounts without a password or an unknown email.
   const key = await derive(
     password,
     valid ? parts[1] : "0".repeat(32),

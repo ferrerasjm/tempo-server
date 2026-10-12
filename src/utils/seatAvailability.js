@@ -2,8 +2,6 @@ const Reservation = require("../models/Reservation");
 const FocusSession = require("../models/FocusSession");
 const { sessionEndsAt } = require("./sessionClock");
 
-// Find the busiest point in a requested time window.
-// A seat freed at 11:00 can be used by another reservation starting at 11:00.
 async function getPeakReservedSeats(areaId, startsAt, endsAt) {
   const reservations = await Reservation.find({
     area: areaId,
@@ -41,7 +39,6 @@ async function getPeakReservedSeats(areaId, startsAt, endsAt) {
     });
   }
 
-  // At the same time, process departures before arrivals.
   changes.sort((a, b) => a.time - b.time || a.seats - b.seats);
 
   let occupied = 0;

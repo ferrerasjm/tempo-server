@@ -4,7 +4,6 @@ function focusRecommendation(task, energyLevel) {
   const energyMinutes = { low: 25, medium: 40, high: 50 };
   let plannedMinutes = energyMinutes[energyLevel];
 
-  // Difficult work gets a shorter block; easy work can use a longer one.
   if (task.difficulty === "high") plannedMinutes -= 10;
   if (task.difficulty === "low") plannedMinutes += 5;
 
@@ -12,7 +11,6 @@ function focusRecommendation(task, energyLevel) {
     philippineDayNumber(task.deadline) - philippineDayNumber(new Date());
   if (daysUntilDue <= 1) plannedMinutes += 5;
 
-  // Never suggest more time than the task's estimated work.
   plannedMinutes = Math.max(
     15,
     Math.floor(Math.min(plannedMinutes, task.estimatedMinutes)),
